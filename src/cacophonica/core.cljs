@@ -1,7 +1,7 @@
 (ns cacophonica.core
   (:require [clojure.browser.repl :as repl]
             [goog.net.XhrIo]
-            [cljs.core.async :as async :refer [<! >! chan close!]]
+            [cljs.core.async :as async :refer [<! >! chan put! close!]]
             [hum.core :as hum])
   (:require-macros [cljs.core.async.macros :refer [go]]))
 
@@ -15,9 +15,36 @@
 
 (def a-size 2048)
 
+;; (defmacro go-loop [& body]
+;;   `(cljs.core.async.macros/go
+;;      (while true
+;;        ~@body)))
+
 (defn current-time
   [ctx]
   (.currentTime ctx))
+
+(defn init-file-handling
+  []
+  (let [drop-zone js/document
+        files-chan (chan)]
+    (.addEventListener drop-zone
+                       "dragover"
+                       (fn [e]
+                         (.stopPropagation e)
+                         (.preventDefault e)
+                         (set! (.-dropEffect (.-dataTransfer e))
+                               "copy"))
+                       false)
+    (.addEventListener drop-zone
+                       "drop"
+                       (fn [e]
+                         (.stopPropagation e)
+                         (.preventDefault e)
+                         (put! files-chan
+                               (.-files (.-dataTransfer e))))
+                       false)
+    files-chan))
 
 (defn decode-audio-data
   [context data]
@@ -44,13 +71,11 @@
     ch))
 
 (defn play-audio
-  [ctx url]
+  [buffer]
   (go
-    (let [response (<! (get-audio url))
-          buffer (<! (decode-audio-data ctx response))
-          source (doto (.createBufferSource ctx)
-                   (aset "buffer" buffer))]
-      (.connect source (.-destination ctx))
+    (let [ source (doto (.createBufferSource audio-context)
+                    (aset "buffer" buffer))]
+      (.connect source (.-destination audio-context))
       (.start source 0))))
 
 (defn file->chan
@@ -62,21 +87,32 @@
     (set! (.-onload reader) (fn []
                               (put! resp-c (.-result reader))))
     (.readAsArrayBuffer reader file)
-    (go-loop (let [[resp] (alts! [resp-c])]
-               (.decodeAudioData audio-context
-                                 resp
-                                 #(put! c %))))
+    (go
+      (while true
+        (let [[resp] (alts! [resp-c])]
+          (.decodeAudioData audio-context
+                            resp
+                            #(put! c %)))))
     c))
 
 (defn get-buffer
   [ctx url]
   (decode-audio-data ctx (get-audio url)))
 
-(go
-  (let [r (<! (get-audio "/files/clack.wav"))
-        b (<! (get-buffer (hum/create-context) "/files/clack.wav"))]
-    (println r)
-    (println b)))
+(let [files-chan (init-file-handling)]
+  (go
+    (while true
+      (let [files (<! files-chan)
+            file (aget files 0)
+            audio (<! (file->chan file))]
+        (prn audio)
+        (play-audio audio)))))
+
+;; (go
+;;   (let [r (<! (get-audio "https://upload.wikimedia.org/wikipedia/commons/e/e7/Bobbypfeife.ogg"))
+;;         b (<! (get-buffer (hum/create-context) "https://upload.wikimedia.org/wikipedia/commons/e/e7/Bobbypfeife.ogg"))]
+;;     (println r)
+;;     (println b)))
 
 ;; experimental
 
