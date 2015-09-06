@@ -1,0 +1,76 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-type" content="text/html; charset=UTF-8">
+    <script src="http://cwilso.github.io/AudioContext-MonkeyPatch/AudioContextMonkeyPatch.js"></script>
+    <script src="./lodash.min.js"></script>
+    <script src="./lvl1.js"></script>
+    <script>
+        function flash(callback) {
+            window.requestAnimFrame = function (callback) {
+                window.setTimeout(callback, 1000);
+            };
+        }
+
+        window.onload = function () {
+            pitchDetector.startLiveInput();
+        };
+    </script>
+    <style>
+        #result {
+            margin: 0 auto;
+            text-align: center;
+            font-size: 50px;
+            padding: 50px;
+        }
+
+        #measures {
+            margin: 0 auto;
+            text-align: center;
+            margin-top: 100px;
+        }
+
+        .note {
+            color: black;
+            border: 1px solid black;
+            padding: 15px;
+        }
+
+        #note-1, #note-4 {
+            border: 1px solid palevioletred;
+        }
+
+        .note-fill-1, .note-fill-4 {
+            background: green;
+        }
+
+        .note-fill-2, .note-fill-5 {
+            background: indianred;
+        }
+
+        .note-fill-3, .note-fill-6 {
+            background: maroon;
+        }
+    </style>
+</head>
+<body>
+<h1>Welcome to Video Games On Cacophonica™</h1>
+
+<h2>Level 1</h2>
+
+<p>Settings for this level are: 2 measures (bars) of 3/4 time signature on c-major at 60 bpm</p>
+
+<p>¶ Happy playing! ¶</p>
+
+<div id="measures">
+    <span class="note" id="note-1"></span>
+    <span class="note" id="note-2"></span>
+    <span class="note" id="note-3"></span>
+    <span class="note" id="note-4"></span>
+    <span class="note" id="note-5"></span>
+    <span class="note" id="note-6"></span>
+</div>
+
+<div id="result"></div>
+</body>
+</html>
